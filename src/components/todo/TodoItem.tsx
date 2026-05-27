@@ -1,6 +1,7 @@
 import { Todo } from "../../types/todo";
 import { PriorityBadge } from "./PriorityBadge";
 import { Button } from "../ui/Button";
+import { formatDate, isOverdue } from "../ui/DatePicker";
 import "./TodoItem.css";
 
 interface TodoItemProps {
@@ -8,6 +9,10 @@ interface TodoItemProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit?: (todo: Todo) => void;
+  onDragStart?: (id: string) => void;
+  onDragOver?: (e: React.DragEvent, id: string) => void;
+  onDragEnd?: () => void;
+  isDragging?: boolean;
 }
 
 const priorityBorderColors = {
@@ -16,12 +21,26 @@ const priorityBorderColors = {
   low: "var(--success)",
 };
 
-export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
+export function TodoItem({
+  todo,
+  onToggle,
+  onDelete,
+  onEdit,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  isDragging,
+}: TodoItemProps) {
   return (
     <li
-      className={`todo-item ${todo.completed ? "completed" : ""} fade-in`}
+      className={`todo-item ${todo.completed ? "completed" : ""} ${isDragging ? "dragging" : ""} fade-in`}
       style={{ borderLeftColor: priorityBorderColors[todo.priority] }}
+      draggable
+      onDragStart={() => onDragStart?.(todo.id)}
+      onDragOver={(e) => onDragOver?.(e, todo.id)}
+      onDragEnd={onDragEnd}
     >
+      <div className="todo-drag-handle">⋮⋮</div>
       <div
         className={`todo-checkbox ${todo.completed ? "checked" : ""}`}
         onClick={() => onToggle(todo.id)}
@@ -37,18 +56,19 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
           </div>
         )}
         <div className="todo-meta">
-          {todo.tags.length > 0 && todo.tags.map((tag) => (
-            <span key={tag} className="todo-tag">{tag}</span>
-          ))}
+          {todo.tags.length > 0 &&
+            todo.tags.map((tag) => (
+              <span key={tag} className="todo-tag">
+                {tag}
+              </span>
+            ))}
           {todo.dueDate && (
             <span className={`todo-due ${isOverdue(todo.dueDate) ? "overdue" : ""}`}>
               📅 {formatDate(todo.dueDate)}
             </span>
           )}
           {todo.children.length > 0 && (
-            <span className="todo-subtasks">
-              ✓ {todo.children.filter(() => false).length}/{todo.children.length}
-            </span>
+            <span className="todo-subtasks-count">📎 {todo.children.length} 个子任务</span>
           )}
         </div>
       </div>
@@ -64,21 +84,4 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
       </div>
     </li>
   );
-}
-
-function isOverdue(dateStr: string): boolean {
-  const today = new Date().toISOString().split("T")[0];
-  return dateStr < today;
-}
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  if (dateStr === today.toISOString().split("T")[0]) return "今天";
-  if (dateStr === tomorrow.toISOString().split("T")[0]) return "明天";
-
-  return `${date.getMonth() + 1}月${date.getDate()}日`;
 }

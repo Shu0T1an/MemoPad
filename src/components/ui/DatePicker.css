@@ -1,0 +1,30 @@
+.date-picker-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.date-picker-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.date-picker {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.15s;
+  background: var(--bg);
+}
+
+.date-picker:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}

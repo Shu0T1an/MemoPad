@@ -1,5 +1,6 @@
 import type { Todo } from "./types";
 import { TodoItem } from "./TodoItem";
+import { useDragSort } from "../../hooks/useDragSort";
 import "./TodoList.css";
 
 interface TodoListProps {
@@ -8,9 +9,22 @@ interface TodoListProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit?: (todo: Todo) => void;
+  onReorder: (newOrder: Todo[]) => void;
 }
 
-export function TodoList({ todos, filter, onToggle, onDelete, onEdit }: TodoListProps) {
+export function TodoList({
+  todos,
+  filter,
+  onToggle,
+  onDelete,
+  onEdit,
+  onReorder,
+}: TodoListProps) {
+  const { draggedId, handleDragStart, handleDragOver, handleDragEnd } = useDragSort(
+    todos,
+    onReorder
+  );
+
   const filtered = todos.filter((todo) => {
     if (filter === "active") return !todo.completed;
     if (filter === "completed") return todo.completed;
@@ -40,6 +54,10 @@ export function TodoList({ todos, filter, onToggle, onDelete, onEdit }: TodoList
           onToggle={onToggle}
           onDelete={onDelete}
           onEdit={onEdit}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+          isDragging={draggedId === todo.id}
         />
       ))}
     </ul>

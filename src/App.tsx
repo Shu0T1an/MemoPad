@@ -1,31 +1,76 @@
-import { useState } from "react";
-import { Sidebar, MainContent, QuickAddInput, TodoList, Button, FilterBar } from "./components";
-import type { Todo } from "./types/todo";
+import { useState, useMemo } from "react";
+import { TodoProvider, useTodoContext } from "./context/TodoContext";
+import { useTodos } from "./hooks/useTodos";
+import { useFilter } from "./hooks/useFilter";
+import { useSearch } from "./hooks/useSearch";
+import {
+  Sidebar,
+  MainContent,
+  TodoHeader,
+  TodoFilters,
+  TodoList,
+  TodoForm,
+  TodoSubtasks,
+} from "./components";
+import type { Todo, Priority } from "./types/todo";
 import "./styles/variables.css";
 import "./styles/layout.css";
 
-const initialTodos: Todo[] = [
-  { id: "1", title: "完成项目提案", description: "准备Q3项目计划和预算", priority: "high", tags: ["工作"], completed: false, dueDate: "2026-05-27", children: [], order: 0, createdAt: "2026-05-27T00:00:00Z", updatedAt: "2026-05-27T00:00:00Z" },
-  { id: "2", title: "健身 - 胸肌训练", description: "卧推、飞鸟、俯卧撑", priority: "medium", tags: ["个人"], completed: false, dueDate: "2026-05-27", children: [], order: 1, createdAt: "2026-05-27T00:00:00Z", updatedAt: "2026-05-27T00:00:00Z" },
-  { id: "3", title: "阅读《设计心理学》第3章", description: "", priority: "low", tags: ["学习"], completed: true, children: [], order: 2, createdAt: "2026-05-26T00:00:00Z", updatedAt: "2026-05-26T00:00:00Z" },
-  { id: "4", title: "购买生日礼物", description: "朋友下周生日", priority: "medium", tags: ["个人"], completed: false, dueDate: "2026-05-28", children: [], order: 3, createdAt: "2026-05-27T00:00:00Z", updatedAt: "2026-05-27T00:00:00Z" },
-  { id: "5", title: "代码审查", description: "审查团队PR", priority: "high", tags: ["工作"], completed: false, dueDate: "2026-05-27", children: [], order: 4, createdAt: "2026-05-27T00:00:00Z", updatedAt: "2026-05-27T00:00:00Z" },
-];
+function TodoApp() {
+  const { todos } = useTodoContext();
+  const { addTodo, updateTodo, deleteTodo, toggleTodo, reorderTodos } = useTodos();
+  const { filter, setFilter, filteredTodos } = useFilter(todos);
+  const { searchTerm, setSearchTerm, searchResults } = useSearch(filteredTodos);
 
-const filters = [
-  { key: "all", label: "全部" },
-  { key: "active", label: "进行中" },
-  { key: "completed", label: "已完成" },
-];
+  const [showForm, setShowForm] = useState(false);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
 
-function App() {
-  const [currentView, setCurrentView] = useState<"todos" | "notes">("todos");
-  const [todos, setTodos] = useState<Todo[]>(initialTodos);
-  const [todoFilter, setTodoFilter] = useState("all");
+  // 获取所有已使用的标签
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    todos.forEach((todo) => todo.tags.forEach((tag) => tags.add(tag)));
+    return Array.from(tags);
+  }, [todos]);
 
-  const handleQuickAdd = (title: string) => {
-    setTodos([
-      {
+  // 应用搜索筛选
+  const displayTodos = searchTerm ? searchResults : filteredTodos;
+
+  const handleAdd = (data: {
+    title: string;
+    description: string;
+    priority: Priority;
+    tags: string[];
+    dueDate?: string;
+  }) => {
+    addTodo({
+      ...data,
+      completed: false,
+      children: [],
+      order: todos.length,
+    });
+  };
+
+  const handleEdit = (data: {
+    title: string;
+    description: string;
+    priority: Priority;
+    tags: string[];
+    dueDate?: string;
+  }) => {
+    if (editingTodo) {
+      updateTodo({
+        ...editingTodo,
+        ...data,
+      });
+      setEditingTodo(null);
+    }
+  };
+
+  const handleAddSubtask = (parentId: string, title: string) => {
+    const parent = todos.find((t) => t.id === parentId);
+    if (parent) {
+      const newSubtask: Todo = {
         id: Date.now().toString(),
         title,
         description: "",
@@ -33,78 +78,103 @@ function App() {
         tags: [],
         completed: false,
         children: [],
-        order: todos.length,
+        order: 0,
+        parentId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      },
-      ...todos,
-    ]);
+      };
+      updateTodo({
+        ...parent,
+        children: [...parent.children, newSubtask.id],
+      });
+      // 添加子任务到列表
+      addTodo(newSubtask);
+    }
   };
-
-  const handleToggleTodo = (id: string) => {
-    setTodos(todos.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
-  };
-
-  const handleDeleteTodo = (id: string) => {
-    setTodos(todos.filter((t) => t.id !== id));
-  };
-
-  const activeTodoCount = todos.filter((t) => !t.completed).length;
 
   return (
     <div className="app">
       <Sidebar
-        currentView={currentView}
-        todoCount={activeTodoCount}
+        currentView="todos"
+        todoCount={todos.filter((t) => !t.completed).length}
         notesCount={0}
-        onViewChange={setCurrentView}
+        onViewChange={() => {}}
         onFilterChange={(filter) => {
-          setCurrentView("todos");
-          setTodoFilter(filter === "completed" ? "completed" : "all");
+          setFilter({
+            ...filter,
+            status: filter === "completed" ? "completed" : "all",
+          });
         }}
       />
 
-      {currentView === "todos" && (
-        <MainContent
-          title="待办事项"
-          actions={
-            <Button>
-              <span>+</span> 添加任务
-            </Button>
-          }
-        >
-          <FilterBar
-            filters={filters}
-            activeFilter={todoFilter}
-            onFilterChange={setTodoFilter}
+      <MainContent
+        title=""
+        header={
+          <TodoHeader
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            onAddClick={() => setShowForm(true)}
           />
-          <QuickAddInput onAdd={handleQuickAdd} />
-          <TodoList
-            todos={todos}
-            filter={todoFilter}
-            onToggle={handleToggleTodo}
-            onDelete={handleDeleteTodo}
-          />
-        </MainContent>
-      )}
+        }
+      >
+        <TodoFilters
+          activeStatus={filter.status}
+          activePriority={filter.priority}
+          activeTags={filter.tags || []}
+          availableTags={availableTags}
+          onStatusChange={(status) => setFilter({ ...filter, status: status as any })}
+          onPriorityChange={(priority) => setFilter({ ...filter, priority })}
+          onTagsChange={(tags) => setFilter({ ...filter, tags })}
+        />
 
-      {currentView === "notes" && (
-        <MainContent
-          title="便签"
-          actions={
-            <Button>
-              <span>+</span> 新建便签
-            </Button>
-          }
-        >
-          <div className="empty-state">
-            <div className="empty-icon">📝</div>
-            <h3>还没有便签</h3>
-            <p>点击"新建便签"记录你的想法</p>
-          </div>
-        </MainContent>
-      )}
+        <TodoList
+          todos={displayTodos}
+          filter={filter.status}
+          onToggle={toggleTodo}
+          onDelete={deleteTodo}
+          onEdit={(todo) => setEditingTodo(todo)}
+          onReorder={reorderTodos}
+        />
+
+        {selectedTodo && selectedTodo.children.length > 0 && (
+          <TodoSubtasks
+            parentId={selectedTodo.id}
+            subtasks={todos.filter((t) => t.parentId === selectedTodo.id)}
+            onAdd={handleAddSubtask}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+          />
+        )}
+      </MainContent>
+
+      <TodoForm
+        isOpen={showForm || !!editingTodo}
+        onClose={() => {
+          setShowForm(false);
+          setEditingTodo(null);
+        }}
+        onSubmit={editingTodo ? handleEdit : handleAdd}
+        initialData={
+          editingTodo
+            ? {
+                title: editingTodo.title,
+                description: editingTodo.description || "",
+                priority: editingTodo.priority,
+                tags: editingTodo.tags,
+                dueDate: editingTodo.dueDate,
+              }
+            : undefined
+        }
+      />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <TodoProvider>
+      <TodoApp />
+    </TodoProvider>
   );
 }
 

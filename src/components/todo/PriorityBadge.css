@@ -1,0 +1,11 @@
+.priority-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.priority-badge:has(+ *) {
+  margin-right: 8px;
+}

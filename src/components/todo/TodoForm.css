@@ -1,0 +1,90 @@
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--fg);
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.15s;
+  background: var(--bg);
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.priority-selector {
+  display: flex;
+  gap: 10px;
+}
+
+.priority-option {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--surface);
+}
+
+.priority-option:hover {
+  border-color: var(--muted);
+}
+
+.priority-option.high {
+  color: var(--danger);
+}
+
+.priority-option.high.selected {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+.priority-option.medium {
+  color: var(--warning);
+}
+
+.priority-option.medium.selected {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: white;
+}
+
+.priority-option.low {
+  color: var(--success);
+}
+
+.priority-option.low.selected {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}

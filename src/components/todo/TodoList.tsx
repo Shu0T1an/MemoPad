@@ -1,5 +1,5 @@
 import type { Todo } from "./types";
-import { Button } from "../ui/Button";
+import { TodoItem } from "./TodoItem";
 import "./TodoList.css";
 
 interface TodoListProps {
@@ -7,9 +7,10 @@ interface TodoListProps {
   filter: string;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit?: (todo: Todo) => void;
 }
 
-export function TodoList({ todos, filter, onToggle, onDelete }: TodoListProps) {
+export function TodoList({ todos, filter, onToggle, onDelete, onEdit }: TodoListProps) {
   const filtered = todos.filter((todo) => {
     if (filter === "active") return !todo.completed;
     if (filter === "completed") return todo.completed;
@@ -33,39 +34,13 @@ export function TodoList({ todos, filter, onToggle, onDelete }: TodoListProps) {
   return (
     <ul className="todo-list">
       {filtered.map((todo) => (
-        <li
+        <TodoItem
           key={todo.id}
-          className={`todo-item ${todo.completed ? "completed" : ""} fade-in`}
-        >
-          <div
-            className={`todo-checkbox ${todo.completed ? "checked" : ""}`}
-            onClick={() => onToggle(todo.id)}
-          />
-          <div className="todo-body">
-            <div className="todo-title">{todo.title}</div>
-            {todo.description && (
-              <div className="todo-meta">
-                <span>{todo.description}</span>
-              </div>
-            )}
-            <div className="todo-meta">
-              {todo.tags.length > 0 && (
-                <span className="todo-tag">{todo.tags[0]}</span>
-              )}
-              {todo.dueDate && <span>{todo.dueDate}</span>}
-            </div>
-          </div>
-          <div className="todo-actions">
-            <Button
-              variant="ghost"
-              icon
-              onClick={() => onDelete(todo.id)}
-              title="删除"
-            >
-              🗑
-            </Button>
-          </div>
-        </li>
+          todo={todo}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onEdit={onEdit}
+        />
       ))}
     </ul>
   );

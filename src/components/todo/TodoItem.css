@@ -1,0 +1,38 @@
+.todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-left: 3px solid var(--border);
+}
+
+.todo-item:hover {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.todo-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.todo-due {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.todo-due.overdue {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.todo-subtasks {
+  font-size: 12px;
+  color: var(--muted);
+}

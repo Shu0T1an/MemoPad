@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flow — Todo & Notes</title>
+  <style>
+    :root {
+      --bg: oklch(99% 0.002 240);
+      --surface: oklch(100% 0 0);
+      --fg: oklch(18% 0.012 250);
+      --muted: oklch(54% 0.012 250);
+      --border: oklch(92% 0.005 250);
+      --accent: oklch(58% 0.18 255);
+      --accent-soft: oklch(95% 0.04 255);
+      --success: oklch(62% 0.17 155);
+      --warning: oklch(75% 0.15 75);
+      --danger: oklch(62% 0.2 25);
+
+      --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+      --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+
+      --sidebar-w: 240px;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.05);
+      --shadow-md: 0 4px 12px oklch(0% 0 0 / 0.08);
+      --shadow-lg: 0 12px 40px oklch(0% 0 0 / 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--fg);
+      font: 14px/1.5 var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ======================== LAYOUT ======================== */
+
+    .app {
+      display: flex;
+      height: 100%;
+    }
+
+    /* ======================== SIDEBAR ======================== */
+
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 12px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px 24px;
+    }
+
+    .sidebar-logo .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .sidebar-logo .logo-text {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-section {
+      margin-bottom: 8px;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 0 12px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 14px;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .sidebar-item:hover {
+      background: var(--accent-soft);
+      color: var(--fg);
+    }
+
+    .sidebar-item.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .sidebar-item .item-icon {
+      width: 20px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+    }
+
+    .sidebar-item .item-count {
+      margin-left: auto;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+
+    .sidebar-spacer { flex: 1; }
+
+    /* ======================== MAIN ======================== */
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .main-header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface);
+    }
+
+    .main-header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .main-header .header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+    }
+
+    /* ======================== BUTTONS ======================== */
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+      outline: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .btn-ghost:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ======================== FILTERS ======================== */
+
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--bg);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .filter-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .filter-chip.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    /* ======================== TODO LIST ======================== */
+
+    .todo-input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .todo-input {
+      flex: 1;
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-family: var(--font-body);
+      outline: none;
+      transition: border-color 0.15s;
+      background: var(--surface);
+    }
+
+    .todo-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .todo-input::placeholder {
+      color: var(--muted);
+    }
+
+    .todo-list {
+      list-style: none;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      transition: all 0.15s;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .todo-item:hover {
+      background: var(--surface);
+      border-color: var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .todo-checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: grid;
+      place-items: center;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+
+    .todo-checkbox:hover {
+      border-color: var(--accent);
+    }
+
+    .todo-checkbox.checked {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .todo-checkbox.checked::after {
+      content: '✓';
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .todo-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .todo-title {
+      font-size: 14px;
+      line-height: 1.4;
+      color: var(--fg);
+    }
+
+    .todo-item.completed .todo-title {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .todo-meta {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .todo-tag {
+      padding: 2px 8px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .todo-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .todo-item:hover .todo-actions {
+      opacity: 1;
+    }
+
+    /* ======================== STICKY NOTES ======================== */
+
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .sticky-note {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .sticky-note:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .sticky-note .note-color {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .sticky-note .note-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      margin-top: 4px;
+    }
+
+    .sticky-note .note-body {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      flex: 1;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 6;
+      -webkit-box-orient: vertical;
+    }
+
+    .sticky-note .note-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .sticky-note .note-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .sticky-note:hover .note-actions {
+      opacity: 1;
+    }
+
+    /* Color variants for notes */
+    .note-blue { background: oklch(97% 0.02 255); }
+    .note-blue .note-color { background: var(--accent); }
+
+    .note-green { background: oklch(97% 0.03 155); }
+    .note-green .note-color { background: var(--success); }
+
+    .note-yellow { background: oklch(97% 0.04 75); }
+    .note-yellow .note-color { background: var(--warning); }
+
+    .note-pink { background: oklch(97% 0.03 350); }
+    .note-pink .note-color { background: oklch(65% 0.18 350); }
+
+    /* Add note card */
+    .add-note-card {
+      border: 2px dashed var(--border);
+      background: transparent;
+      display: grid;
+      place-items: center;
+      min-height: 160px;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .add-note-card:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    /* ======================== MODAL ======================== */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: oklch(0% 0 0 / 0.4);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 14px;
+      box-shadow: var(--shadow-lg);
+      width: 480px;
+      max-height: 80vh;
+      overflow-y: auto;
+      transform: translateY(20px);
+      transition: transform 0.2s;
+    }
+
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h2 {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--fg);
+    }
+
+    .form-input,
+    .form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: var(--font-body);
+      outline: none;
+      transition: border-color 0.15s;
+      background: var(--bg);
+    }
+
+    .form-input:focus,
+    .form-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .form-textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .color-picker {
+      display: flex;
+      gap: 10px;
+    }
+
+    .color-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .color-option:hover {
+      transform: scale(1.1);
+    }
+
+    .color-option.selected {
+      border-color: var(--fg);
+    }
+
+    /* ======================== EMPTY STATE ======================== */
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--fg);
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    /* ======================== ANIMATIONS ======================== */
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">F</div>
+        <span class="logo-text">Flow</span>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">工作区</div>
+        <div class="sidebar-item active" data-view="todos">
+          <span class="item-icon">☐</span>
+          <span>待办事项</span>
+          <span class="item-count" id="todo-count">0</span>
+        </div>
+        <div class="sidebar-item" data-view="notes">
+          <span class="item-icon">📝</span>
+          <span>便签</span>
+          <span class="item-count" id="notes-count">0</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">分类</div>
+        <div class="sidebar-item" data-filter="today">
+          <span class="item-icon">📅</span>
+          <span>今天</span>
+        </div>
+        <div class="sidebar-item" data-filter="upcoming">
+          <span class="item-icon">📆</span>
+          <span>即将到来</span>
+        </div>
+        <div class="sidebar-item" data-filter="completed">
+          <span class="item-icon">✓</span>
+          <span>已完成</span>
+        </div>
+      </div>
+
+      <div class="sidebar-spacer"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-item">
+          <span class="item-icon">⚙️</span>
+          <span>设置</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Todo View -->
+      <div id="view-todos" class="view active">
+        <header class="main-header">
+          <h1>待办事项</h1>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="openAddTodo()">
+              <span>+</span> 添加任务
+            </button>
+          </div>
+        </header>
+
+        <div class="main-content">
+          <div class="filter-bar">
+            <div class="filter-chip active" data-filter="all">全部</div>
+            <div class="filter-chip" data-filter="active">进行中</div>
+            <div class="filter-chip" data-filter="completed">已完成</div>
+          </div>
+
+          <div class="todo-input-row">
+            <input type="text" class="todo-input" id="quick-todo" placeholder="快速添加任务，按回车确认..." onkeypress="handleQuickAdd(event)">
+          </div>
+
+          <ul class="todo-list" id="todo-list">
+            <!-- Todo items will be rendered here -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- Notes View -->
+      <div id="view-notes" class="view" style="display: none;">
+        <header class="main-header">
+          <h1>便签</h1>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="openAddNote()">
+              <span>+</span> 新建便签
+            </button>
+          </div>
+        </header>
+
+        <div class="main-content">
+          <div class="notes-grid" id="notes-grid">
+            <!-- Notes will be rendered here -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Todo Modal -->
+  <div class="modal-overlay" id="modal-todo">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>添加任务</h2>
+        <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-todo')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">任务名称</label>
+          <input type="text" class="form-input" id="todo-title" placeholder="输入任务名称...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">描述（可选）</label>
+          <textarea class="form-textarea" id="todo-desc" placeholder="添加任务描述..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <input type="text" class="form-input" id="todo-tag" placeholder="工作、个人、学习...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-todo')">取消</button>
+        <button class="btn btn-primary" onclick="addTodo()">添加任务</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Note Modal -->
+  <div class="modal-overlay" id="modal-note">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="note-modal-title">新建便签</h2>
+        <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-note')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">标题</label>
+          <input type="text" class="form-input" id="note-title" placeholder="便签标题...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">内容</label>
+          <textarea class="form-textarea" id="note-body" placeholder="写下你的想法..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">颜色</label>
+          <div class="color-picker">
+            <div class="color-option selected" data-color="blue" style="background: var(--accent);" onclick="selectNoteColor('blue')"></div>
+            <div class="color-option" data-color="green" style="background: var(--success);" onclick="selectNoteColor('green')"></div>
+            <div class="color-option" data-color="yellow" style="background: var(--warning);" onclick="selectNoteColor('yellow')"></div>
+            <div class="color-option" data-color="pink" style="background: oklch(65% 0.18 350);" onclick="selectNoteColor('pink')"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-note')">取消</button>
+        <button class="btn btn-primary" onclick="saveNote()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ======================== DATA ========================
+
+    let todos = [
+      { id: 1, title: '完成项目提案', desc: '准备Q3项目计划和预算', tag: '工作', completed: false, date: '今天' },
+      { id: 2, title: '健身 - 胸肌训练', desc: '卧推、飞鸟、俯卧撑', tag: '个人', completed: false, date: '今天' },
+      { id: 3, title: '阅读《设计心理学》第3章', desc: '', tag: '学习', completed: true, date: '昨天' },
+      { id: 4, title: '购买生日礼物', desc: '朋友下周生日', tag: '个人', completed: false, date: '明天' },
+      { id: 5, title: '代码审查', desc: '审查团队PR', tag: '工作', completed: false, date: '今天' },
+    ];
+
+    let notes = [
+      { id: 1, title: '会议要点', body: '1. 产品发布时间确认为下月15号\n2. 需要增加移动端适配\n3. 用户反馈收集渠道优化', color: 'blue', date: '2小时前' },
+      { id: 2, title: '阅读清单', body: '• 《原子习惯》\n• 《深度工作》\n• 《思考，快与慢》', color: 'green', date: '昨天' },
+      { id: 3, title: '待优化', body: '首页加载速度需要提升，目前是3.2秒，目标是1.5秒以内', color: 'yellow', date: '3天前' },
+      { id: 4, title: '灵感', body: '做一个极简的天气应用，使用流体动画，只显示核心信息', color: 'pink', date: '上周' },
+    ];
+
+    let currentFilter = 'all';
+    let currentView = 'todos';
+    let editingNoteId = null;
+    let selectedNoteColor = 'blue';
+
+    // ======================== RENDER ========================
+
+    function renderTodos() {
+      const list = document.getElementById('todo-list');
+      const filtered = todos.filter(todo => {
+        if (currentFilter === 'active') return !todo.completed;
+        if (currentFilter === 'completed') return todo.completed;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <h3>${currentFilter === 'completed' ? '还没有完成的任务' : '没有待办事项'}</h3>
+            <p>${currentFilter === 'completed' ? '完成一些任务后会显示在这里' : '点击上方按钮添加新任务'}</p>
+          </div>
+        `;
+      } else {
+        list.innerHTML = filtered.map(todo => `
+          <li class="todo-item ${todo.completed ? 'completed' : ''} fade-in">
+            <div class="todo-checkbox ${todo.completed ? 'checked' : ''}" onclick="toggleTodo(${todo.id})"></div>
+            <div class="todo-body">
+              <div class="todo-title">${todo.title}</div>
+              ${todo.desc ? `<div class="todo-meta"><span>${todo.desc}</span></div>` : ''}
+              <div class="todo-meta">
+                ${todo.tag ? `<span class="todo-tag">${todo.tag}</span>` : ''}
+                <span>${todo.date}</span>
+              </div>
+            </div>
+            <div class="todo-actions">
+              <button class="btn btn-ghost btn-icon" onclick="deleteTodo(${todo.id})" title="删除">🗑</button>
+            </div>
+          </li>
+        `).join('');
+      }
+
+      document.getElementById('todo-count').textContent = todos.filter(t => !t.completed).length;
+    }
+
+    function renderNotes() {
+      const grid = document.getElementById('notes-grid');
+
+      if (notes.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">📝</div>
+            <h3>还没有便签</h3>
+            <p>点击"新建便签"记录你的想法</p>
+          </div>
+        `;
+      } else {
+        grid.innerHTML = notes.map(note => `
+          <div class="sticky-note note-${note.color} fade-in" onclick="editNote(${note.id})">
+            <div class="note-color"></div>
+            <div class="note-title">${note.title}</div>
+            <div class="note-body">${note.body}</div>
+            <div class="note-footer">
+              <span>${note.date}</span>
+              <div class="note-actions">
+                <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation(); deleteNote(${note.id})" title="删除">🗑</button>
+              </div>
+            </div>
+          </div>
+        `).join('') + `
+          <div class="add-note-card" onclick="openAddNote()">
+            <span>+ 新建便签</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('notes-count').textContent = notes.length;
+    }
+
+    // ======================== ACTIONS ========================
+
+    function switchView(view) {
+      currentView = view;
+
+      document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+      document.getElementById(`view-${view}`).style.display = '';
+
+      document.querySelectorAll('.sidebar-item[data-view]').forEach(item => {
+        item.classList.toggle('active', item.dataset.view === view);
+      });
+
+      if (view === 'todos') renderTodos();
+      if (view === 'notes') renderNotes();
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+
+      document.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.filter === filter);
+      });
+
+      renderTodos();
+    }
+
+    function handleQuickAdd(event) {
+      if (event.key === 'Enter') {
+        const input = document.getElementById('quick-todo');
+        if (input.value.trim()) {
+          todos.unshift({
+            id: Date.now(),
+            title: input.value.trim(),
+            desc: '',
+            tag: '',
+            completed: false,
+            date: '今天'
+          });
+          input.value = '';
+          renderTodos();
+        }
+      }
+    }
+
+    function openAddTodo() {
+      document.getElementById('todo-title').value = '';
+      document.getElementById('todo-desc').value = '';
+      document.getElementById('todo-tag').value = '';
+      openModal('modal-todo');
+    }
+
+    function addTodo() {
+      const title = document.getElementById('todo-title').value.trim();
+      if (!title) return;
+
+      todos.unshift({
+        id: Date.now(),
+        title,
+        desc: document.getElementById('todo-desc').value.trim(),
+        tag: document.getElementById('todo-tag').value.trim(),
+        completed: false,
+        date: '今天'
+      });
+
+      closeModal('modal-todo');
+      renderTodos();
+    }
+
+    function toggleTodo(id) {
+      const todo = todos.find(t => t.id === id);
+      if (todo) {
+        todo.completed = !todo.completed;
+        renderTodos();
+      }
+    }
+
+    function deleteTodo(id) {
+      todos = todos.filter(t => t.id !== id);
+      renderTodos();
+    }
+
+    function openAddNote() {
+      editingNoteId = null;
+      document.getElementById('note-modal-title').textContent = '新建便签';
+      document.getElementById('note-title').value = '';
+      document.getElementById('note-body').value = '';
+      selectNoteColor('blue');
+      openModal('modal-note');
+    }
+
+    function editNote(id) {
+      const note = notes.find(n => n.id === id);
+      if (!note) return;
+
+      editingNoteId = id;
+      document.getElementById('note-modal-title').textContent = '编辑便签';
+      document.getElementById('note-title').value = note.title;
+      document.getElementById('note-body').value = note.body;
+      selectNoteColor(note.color);
+      openModal('modal-note');
+    }
+
+    function saveNote() {
+      const title = document.getElementById('note-title').value.trim();
+      if (!title) return;
+
+      if (editingNoteId) {
+        const note = notes.find(n => n.id === editingNoteId);
+        if (note) {
+          note.title = title;
+          note.body = document.getElementById('note-body').value.trim();
+          note.color = selectedNoteColor;
+        }
+      } else {
+        notes.unshift({
+          id: Date.now(),
+          title,
+          body: document.getElementById('note-body').value.trim(),
+          color: selectedNoteColor,
+          date: '刚刚'
+        });
+      }
+
+      closeModal('modal-note');
+      renderNotes();
+    }
+
+    function deleteNote(id) {
+      notes = notes.filter(n => n.id !== id);
+      renderNotes();
+    }
+
+    function selectNoteColor(color) {
+      selectedNoteColor = color;
+      document.querySelectorAll('.color-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.color === color);
+      });
+    }
+
+    // ======================== MODAL ========================
+
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    // ======================== INIT ========================
+
+    // Sidebar click handlers
+    document.querySelectorAll('.sidebar-item[data-view]').forEach(item => {
+      item.addEventListener('click', () => switchView(item.dataset.view));
+    });
+
+    document.querySelectorAll('.sidebar-item[data-filter]').forEach(item => {
+      item.addEventListener('click', () => {
+        switchView('todos');
+        setFilter(item.dataset.filter === 'completed' ? 'completed' : 'all');
+      });
+    });
+
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => setFilter(chip.dataset.filter));
+    });
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.classList.remove('active');
+      });
+    });
+
+    // Initial render
+    renderTodos();
+    renderNotes();
+  </script>
+</body>
+</html>

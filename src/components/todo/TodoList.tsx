@@ -5,8 +5,8 @@ import "./TodoList.css";
 interface TodoListProps {
   todos: Todo[];
   filter: string;
-  onToggle: (id: number) => void;
-  onDelete: (id: number) => void;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
 export function TodoList({ todos, filter, onToggle, onDelete }: TodoListProps) {
@@ -43,14 +43,16 @@ export function TodoList({ todos, filter, onToggle, onDelete }: TodoListProps) {
           />
           <div className="todo-body">
             <div className="todo-title">{todo.title}</div>
-            {todo.desc && (
+            {todo.description && (
               <div className="todo-meta">
-                <span>{todo.desc}</span>
+                <span>{todo.description}</span>
               </div>
             )}
             <div className="todo-meta">
-              {todo.tag && <span className="todo-tag">{todo.tag}</span>}
-              <span>{todo.date}</span>
+              {todo.tags.length > 0 && (
+                <span className="todo-tag">{todo.tags[0]}</span>
+              )}
+              {todo.dueDate && <span>{todo.dueDate}</span>}
             </div>
           </div>
           <div className="todo-actions">
